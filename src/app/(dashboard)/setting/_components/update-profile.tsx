@@ -130,7 +130,15 @@ const UpdateProfile = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Validate postal code - only numbers allowed
+    if (name === "postalCode" && value !== "") {
+      // Allow only numbers
+      const numbersOnly = value.replace(/[^0-9]/g, "");
+      setFormData((prev) => ({ ...prev, [name]: numbersOnly }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   // Handle select changes
@@ -173,8 +181,15 @@ const UpdateProfile = () => {
       formDataToSend.append("phoneNumber", formData.phoneNumber);
     if (formData.country) formDataToSend.append("country", formData.country);
     if (formData.city) formDataToSend.append("city", formData.city);
-    if (formData.postalCode)
-      formDataToSend.append("postalCode", formData.postalCode);
+
+    // Convert postalCode to number if it exists and is not empty
+    if (formData.postalCode && formData.postalCode.trim() !== "") {
+      const postalCodeNumber = Number(formData.postalCode);
+      if (!isNaN(postalCodeNumber)) {
+        formDataToSend.append("postalCode", postalCodeNumber.toString());
+      }
+    }
+
     if (formData.sector) formDataToSend.append("sector", formData.sector);
 
     // Append avatar if changed
@@ -195,29 +210,6 @@ const UpdateProfile = () => {
       </Card>
     );
   }
-
-  const countries = [
-    { code: "US", name: "United States" },
-    { code: "GB", name: "United Kingdom" },
-    { code: "CA", name: "Canada" },
-    { code: "AU", name: "Australia" },
-    { code: "DE", name: "Germany" },
-    { code: "FR", name: "France" },
-    { code: "ES", name: "Spain" },
-    { code: "IT", name: "Italy" },
-    { code: "NL", name: "Netherlands" },
-    { code: "SE", name: "Sweden" },
-    { code: "NO", name: "Norway" },
-    { code: "DK", name: "Denmark" },
-    { code: "FI", name: "Finland" },
-    { code: "BE", name: "Belgium" },
-    { code: "CH", name: "Switzerland" },
-    { code: "AT", name: "Austria" },
-    { code: "IE", name: "Ireland" },
-    { code: "NZ", name: "New Zealand" },
-    { code: "SG", name: "Singapore" },
-    { code: "AE", name: "United Arab Emirates" },
-  ];
 
   const sectors = [
     { value: "wellness", label: "Wellness" },
@@ -388,10 +380,6 @@ const UpdateProfile = () => {
                   className="bg-gray-100 border-none h-12 rounded-xl cursor-not-allowed opacity-70"
                   placeholder="Your email address"
                 />
-                <p className="text-xs text-gray-400">
-                  Email address cannot be changed. Contact support for
-                  assistance.
-                </p>
               </div>
 
               {/* Phone Number */}
@@ -423,28 +411,16 @@ const UpdateProfile = () => {
                   {/* Country */}
                   <div className="space-y-2">
                     <Label className="text-sm text-gray-600">Country</Label>
-                    <Select
+                    <Input
+                      name="country"
                       value={formData.country}
-                      onValueChange={(value) =>
-                        handleSelectChange("country", value)
-                      }
+                      onChange={handleInputChange}
                       disabled={!isEditing}
-                    >
-                      <SelectTrigger
-                        className={`bg-[#F4F9F9] border-none h-12 rounded-xl w-full ${
-                          !isEditing && "opacity-70"
-                        }`}
-                      >
-                        <SelectValue placeholder="Select country" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {countries.map((country) => (
-                          <SelectItem key={country.code} value={country.name}>
-                            {country.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      className={`bg-[#F4F9F9] border-none h-12 rounded-xl ${
+                        !isEditing && "opacity-70"
+                      }`}
+                      placeholder="Enter your country"
+                    />
                   </div>
 
                   {/* City */}
@@ -472,6 +448,9 @@ const UpdateProfile = () => {
                       value={formData.postalCode}
                       onChange={handleInputChange}
                       disabled={!isEditing}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       className={`bg-[#F4F9F9] border-none h-12 rounded-xl ${
                         !isEditing && "opacity-70"
                       }`}
@@ -493,7 +472,7 @@ const UpdateProfile = () => {
                       disabled={!isEditing}
                     >
                       <SelectTrigger
-                        className={`bg-[#F4F9F9] border-none h-12 rounded-xl w-full ${
+                        className={`bg-[#F4F9F9] border-none !h-12 rounded-xl w-full ${
                           !isEditing && "opacity-70"
                         }`}
                       >
