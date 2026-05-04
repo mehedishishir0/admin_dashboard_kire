@@ -588,6 +588,9 @@ export default function UsersManagement() {
                         Email
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">
+                        Phone Number
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">
                         Role
                       </th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600">
@@ -602,17 +605,17 @@ export default function UsersManagement() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {users.map((user) => (
+                    {users?.map((user) => (
                       <tr
-                        key={user._id}
+                        key={user?._id}
                         className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             {user.avatar ? (
                               <Image
-                                src={user.avatar}
-                                alt={user.fullName}
+                                src={user?.avatar}
+                                alt={user?.fullName}
                                 width={1000}
                                 height={1000}
                                 className="w-8 h-8 rounded-full object-cover"
@@ -620,17 +623,20 @@ export default function UsersManagement() {
                             ) : (
                               <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">
                                 <span className="text-xs font-semibold text-teal-600">
-                                  {user.fullName.charAt(0).toUpperCase()}
+                                  {user?.fullName?.charAt(0).toUpperCase()}
                                 </span>
                               </div>
                             )}
                             <span className="font-medium text-gray-900">
-                              {user.fullName}
+                              {user?.fullName}
                             </span>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-600">
-                          {user.email}
+                          {user?.email}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">
+                          {user?.phoneNumber}
                         </td>
                         <td className="px-6 py-4">
                           <span

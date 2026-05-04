@@ -216,11 +216,13 @@ export default function BusinessesManagement() {
             <TableBody>
               {businesses.map((biz) => (
                 <TableRow key={biz._id}>
-                  <TableCell className="p-6">{biz.businessName}</TableCell>
-                  <TableCell className="p-6">{biz.ownerId.fullName}</TableCell>
-                  <TableCell className="p-6">{biz.sector}</TableCell>
-                  <TableCell className="p-6">{biz.city}</TableCell>
-                  <TableCell className="p-6">{biz.totalStaff}</TableCell>
+                  <TableCell className="p-6">{biz?.businessName}</TableCell>
+                  <TableCell className="p-6">
+                    {biz?.ownerId?.fullName}
+                  </TableCell>
+                  <TableCell className="p-6">{biz?.sector}</TableCell>
+                  <TableCell className="p-6">{biz?.city}</TableCell>
+                  <TableCell className="p-6">{biz?.totalStaff}</TableCell>
                   <TableCell className="p-6">
                     {new Date(biz.createdAt).toLocaleDateString()}
                   </TableCell>
