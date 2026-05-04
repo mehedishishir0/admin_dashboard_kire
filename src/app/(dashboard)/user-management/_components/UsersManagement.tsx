@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Eye, ChevronRight, X, Check, AlertCircle } from "lucide-react";
+import { Eye, ChevronRight, X, Check, AlertCircle, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -47,6 +47,64 @@ const fetchUsers = async (token: string): Promise<ApiResponse> => {
   }
 
   return response.json();
+};
+
+const deleteUser = async ({ id, token }: { id: string; token: string }) => {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/dashboard/users/${id}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  if (!res.ok) throw new Error("Failed to delete user");
+  return res.json();
+};
+
+const DeleteConfirmModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  loading,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  loading: boolean;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold text-gray-900">Delete User</h2>
+        <p className="text-sm text-gray-500 mt-2">
+          Are you sure you want to delete this user? This action cannot be
+          undone.
+        </p>
+
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm border rounded-lg"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="px-4 py-2 text-sm bg-red-500 text-white rounded-lg"
+          >
+            {loading ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 const updateUserStatus = async ({
@@ -317,6 +375,8 @@ export default function UsersManagement() {
   const session = useSession();
   const token = session?.data?.user?.accessToken;
   const queryClient = useQueryClient();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["users"],
@@ -367,21 +427,6 @@ export default function UsersManagement() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "bg-green-100 text-green-700";
-      case "INACTIVE":
-        return "bg-yellow-100 text-yellow-700";
-      case "SUSPENDED":
-        return "bg-orange-100 text-orange-700";
-      case "BLOCKED":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
   const getStatusDropdownColor = (status: string) => {
     switch (status) {
       case "ACTIVE":
@@ -419,6 +464,33 @@ export default function UsersManagement() {
     });
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setDeleteModalOpen(false);
+      setDeleteUserId(null);
+    },
+    onError: () => {
+      setDeleteModalOpen(false);
+      setDeleteUserId(null);
+    },
+  });
+
+  const handleDeleteClick = (id: string) => {
+    setDeleteUserId(id);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteUserId) return;
+
+    deleteMutation.mutate({
+      id: deleteUserId,
+      token: token as string,
+    });
+  };
+
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -444,6 +516,12 @@ export default function UsersManagement() {
           setViewModalOpen(false);
           setSelectedUser(null);
         }}
+      />
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        loading={deleteMutation.isPending}
       />
 
       <div className="min-h-screen bg-gray-50">
@@ -580,8 +658,8 @@ export default function UsersManagement() {
                             )} ${updatingStatusId === user._id ? "opacity-50 cursor-not-allowed" : ""}`}
                           >
                             <option value="ACTIVE">ACTIVE</option>
-                            <option value="INACTIVE">INACTIVE</option>
-                            <option value="SUSPENDED">SUSPENDED</option>
+                            {/* <option value="INACTIVE">INACTIVE</option>
+                            <option value="SUSPENDED">SUSPENDED</option> */}
                             <option value="BLOCKED">BLOCKED</option>
                           </select>
                           {updatingStatusId === user._id && (
@@ -598,6 +676,12 @@ export default function UsersManagement() {
                               title="View Details"
                             >
                               <Eye size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(user._id)}
+                              className="text-red-500"
+                            >
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         </td>

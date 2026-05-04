@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Trash2 } from "lucide-react";
+import { Eye, Trash } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,55 +11,88 @@ import {
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
+import { useState } from "react";
 
 interface Business {
   _id: string;
   businessName: string;
-  businessEmail?: string;
-  phoneNumber?: string;
-  businessCategory?: string;
   ownerId: {
     fullName: string;
-    _id?: string;
-    email?: string;
-    role?: string;
   };
   sector: string;
   city: string;
   createdAt: string;
   status: string;
   totalStaff: number;
-  country?: string;
-  description?: string;
-  verification?: string;
-  gallery?: Array<{
-    url: string;
-    publicId: string;
-    uploadedAt: string;
-  }>;
 }
 
-interface ApiResponse {
-  statusCode: number;
-  message: string;
-  data: {
-    items: Business[];
-    meta: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-      hasPreviousPage: boolean;
-      hasNextPage: boolean;
-    };
-  };
-}
+const deleteBusiness = async ({ id, token }: { id: string; token: string }) => {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/dashboard/businesses/${id}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  if (!res.ok) throw new Error("Failed to delete business");
+  return res.json();
+};
+
+const DeleteConfirmModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  loading,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  loading: boolean;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <h2 className="text-lg font-semibold text-gray-900">Delete Business</h2>
+        <p className="text-sm text-gray-500 mt-2">
+          Are you sure you want to delete this business? This action cannot be
+          undone.
+        </p>
+
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm border rounded-lg"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="px-4 py-2 text-sm bg-red-500 text-white rounded-lg"
+          >
+            {loading ? "Deleting..." : "Delete"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function BusinessesManagement() {
   const session = useSession();
   const token = session.data?.user?.accessToken || "";
+  const queryClient = useQueryClient();
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteBusinessId, setDeleteBusinessId] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["businesses"],
@@ -80,10 +113,36 @@ export default function BusinessesManagement() {
     enabled: !!token,
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteBusiness,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["businesses"] });
+      setDeleteModalOpen(false);
+      setDeleteBusinessId(null);
+    },
+    onError: () => {
+      setDeleteModalOpen(false);
+      setDeleteBusinessId(null);
+    },
+  });
+
+  const handleDeleteClick = (id: string) => {
+    setDeleteBusinessId(id);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteBusinessId) return;
+
+    deleteMutation.mutate({
+      id: deleteBusinessId,
+      token,
+    });
+  };
+
   if (isLoading) return <p>Loading...</p>;
   if (error) return <p>Something went wrong!</p>;
 
-  // Extract businesses from API response: data.data.items
   let businesses: Business[] = [];
   let pagination = {
     total: 0,
@@ -119,17 +178,13 @@ export default function BusinessesManagement() {
         {[
           {
             l: "Pending",
-            v: Array.isArray(businesses)
-              ? businesses.filter((b) => b?.status === "pending").length
-              : 0,
+            v: businesses.filter((b) => b?.status === "pending").length,
           },
           {
             l: "Activated",
-            v: Array.isArray(businesses)
-              ? businesses.filter((b) => b?.status === "activated").length
-              : 0,
+            v: businesses.filter((b) => b?.status === "activated").length,
           },
-          { l: "Total", v: Array.isArray(businesses) ? businesses.length : 0 },
+          { l: "Total", v: businesses.length },
         ].map((s, i) => (
           <Card key={i} className="p-6 rounded-xl border-slate-100 shadow-sm">
             <p className="text-xs font-medium text-slate-400 mb-2">{s.l}</p>
@@ -140,111 +195,66 @@ export default function BusinessesManagement() {
         ))}
       </div>
 
-      {/* Table Section */}
+      {/* Table */}
       <div className="bg-white rounded-[20px] border border-slate-100 shadow-sm overflow-hidden">
-        {!Array.isArray(businesses) || businesses.length === 0 ? (
-          // Empty State
-          <div className="flex flex-col items-center justify-center py-16 px-6">
-            <div className="text-center space-y-4 max-w-sm">
-              <div className="flex justify-center mb-4">
-                <div className="bg-[#E8F7F7] p-4 rounded-full">
-                  <svg
-                    className="w-12 h-12 text-[#169C9F]"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-slate-800">
-                No Businesses Yet
-              </h3>
-              <p className="text-slate-500 text-sm">
-                There are no registered businesses to display. New business
-                registrations will appear here.
-              </p>
-            </div>
-          </div>
+        {!businesses.length ? (
+          <div className="flex justify-center py-16">No Businesses Yet</div>
         ) : (
-          // Table with data
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent border-slate-50">
-                <TableHead className="py-5 px-6 font-bold text-slate-800">
-                  Business Name
-                </TableHead>
-                <TableHead className="font-bold text-slate-800">
-                  Owner
-                </TableHead>
-                <TableHead className="font-bold text-slate-800">
-                  Sector
-                </TableHead>
-                <TableHead className="font-bold text-slate-800">City</TableHead>
-                <TableHead className="font-bold text-slate-800">
-                  Staff
-                </TableHead>
-                <TableHead className="font-bold text-slate-800">
-                  Created At
-                </TableHead>
-                <TableHead className="font-bold text-slate-800 text-center">
-                  Action
-                </TableHead>
+              <TableRow>
+                <TableHead className="p-6">Business Name</TableHead>
+                <TableHead className="p-6">Owner</TableHead>
+                <TableHead className="p-6">Sector</TableHead>
+                <TableHead className="p-6">City</TableHead>
+                <TableHead className="p-6">Staff</TableHead>
+                <TableHead className="p-6">Created At</TableHead>
+                <TableHead className="text-center">Action</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
-              {Array.isArray(businesses) &&
-                businesses.map((biz) => (
-                  <TableRow
-                    key={biz._id}
-                    className="border-slate-50 hover:bg-slate-50/50"
-                  >
-                    <TableCell className="py-5 px-6 font-semibold text-slate-700">
-                      {biz.businessName}
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-600">
-                      {biz.ownerId.fullName}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tight bg-[#E8F7F7] text-[#169C9F]`}
+              {businesses.map((biz) => (
+                <TableRow key={biz._id}>
+                  <TableCell className="p-6">{biz.businessName}</TableCell>
+                  <TableCell className="p-6">{biz.ownerId.fullName}</TableCell>
+                  <TableCell className="p-6">{biz.sector}</TableCell>
+                  <TableCell className="p-6">{biz.city}</TableCell>
+                  <TableCell className="p-6">{biz.totalStaff}</TableCell>
+                  <TableCell className="p-6">
+                    {new Date(biz.createdAt).toLocaleDateString()}
+                  </TableCell>
+
+                  <TableCell className="p-6">
+                    <div className="flex justify-center gap-3">
+                      <Link href={`/businesse-management/${biz._id}`}>
+                        <button className="text-[#169C9F] hover:bg-[#E8F7F7] p-2 rounded-lg">
+                          <Eye size={18} />
+                        </button>
+                      </Link>
+
+                      <button
+                        onClick={() => handleDeleteClick(biz._id)}
+                        className="text-[#169C9F] hover:bg-[#E8F7F7] p-2 rounded-lg"
                       >
-                        {biz.sector}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-600">
-                      {biz.city}
-                    </TableCell>
-                    <TableCell className="font-bold text-slate-700">
-                      {biz.totalStaff}
-                    </TableCell>
-                    <TableCell className="text-sm text-slate-500">
-                      {new Date(biz.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-center gap-3">
-                        <Link
-                          className="cursor-pointer"
-                          href={`/businesse-management/${biz._id}`}
-                        >
-                          <button className="text-[#169C9F] hover:bg-[#E8F7F7] p-2 rounded-lg transition-colors">
-                            <Eye size={18} />
-                          </button>
-                        </Link>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        <Trash size={18} />
+                      </button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         )}
       </div>
+
+      {/* Modal */}
+      <DeleteConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        loading={deleteMutation.isPending}
+      />
     </div>
   );
 }

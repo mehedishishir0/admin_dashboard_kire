@@ -2,7 +2,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LogOut, SendToBack, Settings, ShoppingBag, Heart } from "lucide-react";
+import {
+  LogOut,
+  SendToBack,
+  Settings,
+  ShoppingBag,
+  Heart,
+  Star,
+  DollarSign,
+  ChartNoAxesGantt,
+} from "lucide-react";
 
 import { useState } from "react";
 import { signOut } from "next-auth/react";
@@ -29,9 +38,10 @@ const navigation = [
   {
     name: "Subscription & Promotion",
     href: "/subscription-promotion",
-    icon: Heart,
+    icon: DollarSign,
   },
-  { name: "Commission plan", href: "/commission-plan", icon: Heart },
+  { name: "Commission plan", href: "/commission-plan", icon: ChartNoAxesGantt },
+  { name: "Review & Ratings", href: "/reviews", icon: Star },
   { name: "Payment History", href: "/payment-history", icon: Heart },
   { name: "Settings", href: "/setting", icon: Settings },
 ];
