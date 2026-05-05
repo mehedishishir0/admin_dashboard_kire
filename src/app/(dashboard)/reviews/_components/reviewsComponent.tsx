@@ -89,7 +89,7 @@ const ReviewDetailsModal = ({
               />
             ))}
             <span className="ml-2 font-bold text-gray-700">
-              {review.rating}/5
+              {review?.rating}/5
             </span>
           </div>
           <div className="grid grid-cols-1 gap-4">
@@ -97,15 +97,15 @@ const ReviewDetailsModal = ({
               <label className="text-xs font-medium text-gray-500 uppercase">
                 Customer
               </label>
-              <p className="text-sm text-gray-900">{review.userId.email}</p>
+              <p className="text-sm text-gray-900">{review?.userId?.email}</p>
             </div>
             <div>
               <label className="text-xs font-medium text-gray-500 uppercase">
                 Business & Service
               </label>
               <p className="text-sm text-gray-900">
-                {review.businessId.businessName} -{" "}
-                {review.serviceId.serviceName}
+                {review?.businessId?.businessName} -{" "}
+                {review?.serviceId?.serviceName}
               </p>
             </div>
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
@@ -113,7 +113,7 @@ const ReviewDetailsModal = ({
                 Review Content
               </label>
               <p className="text-sm text-gray-700 mt-2 italic leading-relaxed">
-                {review.review}
+                {review?.review}
               </p>
             </div>
           </div>
@@ -204,10 +204,10 @@ export default function ReviewsManagement() {
                     className="hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {item.userId.email}
+                      {item?.userId?.email}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      {item.businessId.businessName}
+                      {item?.businessId?.businessName}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1 text-yellow-500 font-bold text-sm">
@@ -215,7 +215,7 @@ export default function ReviewsManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-[200px] truncate">
-                      {item.review}
+                      {item?.review}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-3">
